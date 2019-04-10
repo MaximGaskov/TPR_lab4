@@ -2,9 +2,15 @@
 ### Подготовка к запуску
 Установите:
 * [python 3.7](https://www.python.org/downloads/)
-* pandas (можно установить с помощью стандартного пакетного менеджера питона - `pip`):
+* pandas
+* xlrd
+* openpyxl
+
+Необходимые пакеты можно установить с помощью `pip`:
 ```bash
 pip install pandas
+pip install xlrd
+pip install openpyxl
 ```
 
 ### Запуск программы
