@@ -3,10 +3,8 @@ import pandas as pd
 MU_ARR =  (0, 1, 1, 0)
 
 df_input_1 = pd.read_excel("input.xlsx", parse_cols=list(range(1,13)), nrows=3, skiprows=1)
-print(df_input_1)
 
 df_input_2 = pd.read_excel("input.xlsx", parse_cols=list(range(1,13)), nrows=3, skiprows=6)
-print(df_input_2)
 
 inputList_E1_K1 = []
 inputList_E1_K2 = []
@@ -32,16 +30,26 @@ EXP_ESTIM_PAIRS = ((inputList_E1_K1[0], inputList_E2_K1[0]), (inputList_E1_K2[0]
                    (inputList_E1_K1[1], inputList_E2_K1[1]), (inputList_E1_K2[1], inputList_E2_K2[1]), (inputList_E1_K3[1], inputList_E2_K3[1]), # second obj
                    (inputList_E1_K1[2], inputList_E2_K1[2]), (inputList_E1_K2[2], inputList_E2_K2[2]), (inputList_E1_K3[2], inputList_E2_K3[2])) # third obj
 
+def contains_with_bigger_mu(cross_table, val):
+
+    for i in range(len(cross_table)):
+        for mu,u in cross_table[i]:
+            if u == val and mu > 0:
+                return True
+    return False
+
 def merge_to_new_trapezium(cross_table, table_OK):
     
     top_array = []
     bottom_array = []
 
-    for mu,u in cross_table:
-        if mu == 1:
-            top_array.append(u)
-        elif mu == 0:
-            bottom_array.append(u)
+
+    for i in range(len(cross_table)):
+        for mu,u in cross_table[i]:
+            if mu == 1:
+                top_array.append(u)
+            elif mu == 0:
+                bottom_array.append(u)
 
     top_left_point = min(top_array)
     top_right_point = max(top_array)
@@ -49,12 +57,13 @@ def merge_to_new_trapezium(cross_table, table_OK):
     bottom_left_point = 0
     bottom_right_point = float("inf")
 
-    for mu,u in cross_table:
-        if mu == 0:
-            if u < top_left_point and u > bottom_left_point:
-                    bottom_left_point = u
-            if u > top_right_point and u < bottom_right_point:
-                    bottom_right_point = u
+    for i in range(len(cross_table)):
+        for mu,u in cross_table[i]:
+            if mu == 0:
+                if u < top_left_point and u > bottom_left_point and not contains_with_bigger_mu(cross_table, u):
+                        bottom_left_point = u
+                if u > top_right_point and u < bottom_right_point and not contains_with_bigger_mu(cross_table, u):
+                        bottom_right_point = u
 
 
     centrA = round((bottom_left_point + 2 * top_left_point + 2 * top_right_point + bottom_right_point) / 6, 6)
@@ -66,25 +75,79 @@ def merge_to_new_trapezium(cross_table, table_OK):
 
 def count_cross_table(expert_data1, expert_data2, k_num, o_num):
     
-    cross_table = [[],[],[],[]]
-    cross_table_arr = []
-    ct_index = 0
-    for j in range(3, -1, -1):   
-        for i in range(0,4):
-            cross_table[ct_index].append(str(min(MU_ARR[i], MU_ARR[j])) + ", " + str(round((expert_data1[i] + expert_data2[j])/2, 2)))
-            cross_table_arr.append((min(MU_ARR[i], MU_ARR[j]), round((expert_data1[i] + expert_data2[j])/2, 2)))
-        ct_index += 1
-    df_cross_table = pd.DataFrame(cross_table,
-                        index=['u4 эксперт 2', 'u3 эксперт 2', 'u2 эксперт 2', 'u1 эксперт 2'], 
-                        columns=['u1 эксперт 1', 'u2 эксперт 1', 'u3 эксперт 1', 'u4 эксперт 1'])
+    extended_expert_data1 = []
+    extended_expert_data2 = []
+
+    ed1_delta1 = int(round(expert_data1[1] - expert_data1[0], 1) * 10)
+    ed1_delta2 = int(round(expert_data1[2] - expert_data1[1], 1) * 10)
+    ed1_delta3 = int(round(expert_data1[3] - expert_data1[2], 1) * 10)
+
+    extended_expert_data1.append((0, expert_data1[0]))
+    for i in range(ed1_delta1 - 1):
+        extended_expert_data1.append((round(1/ed1_delta1 * (i + 1), 3), round(extended_expert_data1[-1][1] + 0.1, 1)))
+    extended_expert_data1.append((1, expert_data1[1]))
+    for i in range(ed1_delta2 - 1):
+        extended_expert_data1.append((1, round(extended_expert_data1[-1][1] + 0.1, 1)))
+    extended_expert_data1.append((1, expert_data1[2]))
+    for i in range(ed1_delta3 - 1):
+        extended_expert_data1.append((round(1/ed1_delta3 * (ed1_delta3 - 1 - i), 3), round(extended_expert_data1[-1][1] + 0.1, 1)))
+    extended_expert_data1.append((0, expert_data1[3]))
+
+
+    ed2_delta1 = int(round(expert_data2[1] - expert_data2[0], 1) * 10)
+    ed2_delta2 = int(round(expert_data2[2] - expert_data2[1], 1) * 10)
+    ed2_delta3 = int(round(expert_data2[3] - expert_data2[2], 1) * 10)
+
+
+    extended_expert_data2.append((0, expert_data2[0]))
+    for i in range(ed2_delta1 - 1):
+        extended_expert_data2.append((round(1/ed2_delta1 * (i + 1), 3), round(extended_expert_data2[-1][1] + 0.1, 1)))
+    extended_expert_data2.append((1, expert_data2[1]))
+    for i in range(ed2_delta2 - 1):
+        extended_expert_data2.append((1, round(extended_expert_data2[-1][1] + 0.1, 1)))
+    extended_expert_data2.append((1, expert_data2[2]))
+    for i in range(ed2_delta3 - 1):
+        extended_expert_data2.append((round(1/ed2_delta3 * (ed2_delta3 - 1 - i), 3), round(extended_expert_data2[-1][1] + 0.1, 1)))
+    extended_expert_data2.append((0, expert_data2[3]))
+
+
+    cross_table = []
+    cross_table_result = []
+
+    for i in range(len(extended_expert_data2)-1, -1, -1):
+        row = []
+        row_res = []
+        for j in range(0,len(extended_expert_data1)):
+            row.append(str(min(extended_expert_data1[j][0], extended_expert_data2[i][0])) + ", " 
+                + str(round((extended_expert_data1[j][1] + extended_expert_data2[i][1])/2, 2)))
+            row_res.append((min(extended_expert_data1[j][0], extended_expert_data2[i][0]), 
+                round((extended_expert_data1[j][1] + extended_expert_data2[i][1])/2, 2)))
+        cross_table.append(row)
+        cross_table_result.append(row_res)
+
+    cols_df = []
+    index_df = []
+
+    for i in range(1, len(extended_expert_data1) + 1):
+        cols_df.append("u{} эксперт 1".format(i))
+    for i in range(len(extended_expert_data2), 0, -1):
+        index_df.append("u{} эксперт 2".format(i))
+
+
+    print("expert 1 estimate: ", expert_data1)
+    print("extended: ", extended_expert_data1)
+    print("expert 2 estimate: ", expert_data2)
+    print("extended: ", extended_expert_data2, "\n")
+
+    df_cross_table = pd.DataFrame(cross_table, columns=cols_df, index=index_df)
     print(df_cross_table)
+    print()
 
     file_name_excel = "table_O" + str(o_num) + "_K" + str(k_num) + ".xlsx"
     df_cross_table.to_excel(file_name_excel)
 
-    return cross_table_arr
 
-
+    return cross_table_result
 
 # START
 table_OK = []
@@ -102,10 +165,9 @@ for i in range(0,9):
 
     exp1_estim, exp2_estim = EXP_ESTIM_PAIRS[i]
     print("|| K", k_counter, "||")
-    print("expert 1 estimate: ", exp1_estim)
-    print("expert 2 estimate: ", exp2_estim, "\n")
-    ctable = count_cross_table(exp1_estim, exp2_estim, k_counter, o_counter)
     print()
+
+    ctable = count_cross_table(exp1_estim, exp2_estim, k_counter, o_counter)
     merge_to_new_trapezium(ctable, table_OK)
     print("\n")
     k_counter += 1
